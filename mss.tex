@@ -96,60 +96,247 @@ Moreover, Vere's design allows it to inject events into Arvo, a feature crucial 
 Thus, Vere serves as more than just a bridge between Martian technology and Earthly hardware; it is a finely tuned conduit, optimized to uphold and facilitate the unique computational paradigm that Arvo embodies.
 
 
+\section{Khan - The High-Level Thread Interface of Urbit}
 
-\section{Background and Literature}
+Khan, as a crucial component of Urbit's architecture, functions as a high-level thread interface, pivotal for managing both internal and external communications within the Urbit ecosystem. It is designed to efficiently handle complex I/O operations, employing an IO monad coupled with an exception monad. This dual-mechanism approach allows Khan to adeptly manage complex IO tasks while effectively handling potential failures.
 
-Exposite the relevant background and literature.
+Khan's role in Urbit can be likened to that of a control plane. Its primary function is to execute threads via a Unix Socket and relay the results back. This setup supports various thread-running modes, enhancing the flexibility of Urbit's computing environment and allowing for diverse interaction methods with both internal and external processes.
+
+At its core, Khan's design revolves around the use of 'threads', which are monadic functions designed to handle arguments and produce results. These threads are optimized for I/O operations, leveraging the IO monad for structured and efficient task handling. The exception monad further ensures robust management of potential failures and unexpected events.
+
+Khan's implementation ensures that Urbit serves as a personal server, replacing multiple developer-hosted web services on foreign servers with self-hosted applications on a single personal server. Its design underscores Urbit's commitment to user ownership and data management, setting it apart from the conventional model of cloud-based services and centralized data management prevalent in Earth-based systems.
+
+\section{\texttt{conn.c}} %Rewrite so its not a blatant copy of alex's work
+
+\texttt{conn.c}\footnote{\url{https://github.com/urbit/vere/blob/develop/pkg/vere/io/conn.c}} is a driver in Vere. It is a part of the "King" (a.k.a. "Urth") process. It exposes a \texttt{Unix domain socket}\footnote{\url{https://en.wikipedia.org/wiki/Unix_domain_socket}} at \texttt{/path/to/pier/.urb/conn.sock} for sending/receiving data from external processes.
+
+The functionality of conn.c, particularly its ability to dispatch messages and handle various types of requests, is critical for the command of urbit's control plane. It serves as a way for unix processes to receive insights about what is happening on urbit. It also allows for pass commands either \%khan and the injection of raw kernel moves into the system. The implication of this means that whoever is running your urbit runtime controls your urbit. 
+
+From a technical perspective, conn.c accepts newt-encoded \texttt{++jam}med nouns which take the form \texttt{[request-id command arguments]}. This structure allows for a variety of commands to be executed, including 
 
 \begin{enumerate}
-  \item  Prefer to \texttt{enumerate}.
-  \item  It is easier to refer to than \texttt{itemize}.
+  \item \texttt{\%ovum} - the injection of raw kernel moves 
+  \item \texttt{\%fyrd} - a direct shortcut to Khan commands
+  \item \texttt{\%urth} - runtime subcommands like \texttt{\%pack}` or \texttt{\%meld}
+  \item \texttt{\%peek} - namespace scry requests into Arvo
+  \item \texttt{\%peel} - emulated namespace scry requests into Vere
 \end{enumerate}
 
-\noindent
-Mark \texttt{\textbackslash noindent} in paragraphs that continue the thought of an \texttt{\textbackslash enumerate} block.
+A valid \texttt{conn.c} command produces a newt-encoded jammed noun with type \texttt{[request-id output]}, where:
+\begin{itemize}
+  \item \texttt{request-id} matches the input \texttt{request-id}
+  \item \texttt{output} depends on the \texttt{command}
+\end{itemize}
 
-\section{Urbit's Implementation}
+An invalid \texttt{conn.c} command produces a newt-encoded jammed noun with type \texttt{[0 \%bail error-code error-string]}. 
 
-Oftentimes you will then turn to exploring how Urbit or closely related systems like Nockchain have approached or considered a problem.
+\subsection{\%ovum}
 
-\lstset{language=C}
-\begin{lstlisting}
-#include <stdio.h>
+The argument to an \texttt{\%ovum} command is a raw kernel move which is injected directly into the Arvo event loop. This is a very powerful - and potentially dangerous - tool. For example, if a ship somehow got into a state where Clay was no longer working properly (meaning new files could not be compiled to fix the state of the kernel), the source code for a new, working Clay could be directly injected into the ship using an \texttt{\%ovum}.
 
-double compute(float a, float b) {
-    return a * a + b * b;
-}
+The output of an \texttt{\%ovum} command is:
+\begin{itemize}
+  \item \texttt{[\%news \%done]} if the move completed successfully
+  \item \texttt{[\%news \%drop]} if the move was dropped
+  \item \texttt{[\%bail goof]} if an error occurred
+\end{itemize}
 
-int main() {
-    float x = 2.5;
-    float y = 3.7;
+\subsection{\%fyrd}
 
-    double result = compute(x, y);
+\texttt{\%fyrd} is a direct shortcut to the Khan vane. The arguments to a \texttt{\%fyrd} command are (in order):
+\begin{enumerate}
+  \item The name of the desk in which the thread lives (e.g. \texttt{\%base}) or \texttt{beak} for the thread (e.g. \texttt{[\%zod \%base \%10]})
+  \item The name of the thread (e.g. \texttt{\%hi})
+  \item Mark to which the output should be cast (e.g. \texttt{\%tape})
+  \item Mark for how to interpret the input argument to thread (e.g. \texttt{\%ship})
+  \item Input argument to thread (e.g. \texttt{\~zod})
+\end{enumerate}
 
-    printf("Result: %lf\n", result);
+The output of a \texttt{\%fyrd} command is \texttt{[\%avow (each page goof)]}, the value of \texttt{each} depending on whether the thread succeeded or not.
 
-    return 0;
-}
-\end{lstlisting}
+\subsection{\%urth}
 
-\noindent
-That code snippet was part of the text, and not a standalone entity to which we make separate repeated reference.
+The argument to the \texttt{\%urth} command is a subcommand for the action to perform. Currently, the only valid commands are \texttt{\%pack} and \texttt{\%meld}.
 
-\begin{figure}
-  \begin{lstlisting}[language=Python, caption={Example Python Code}, label={lst:example}]
-  def hello_world():
-      print("Hello, world!")
-  \end{lstlisting}
-\end{figure}
+\texttt{\%urth} will return \texttt{\%\&} if given a valid command as input, otherwise it will return \texttt{[0 \%bail 0xfffffff9 \%urth-bad]}. No other output is emitted.
 
-Refer to the code listing: Listing~\ref{lst:example}.  (Note that we don't suppress indentation since it's a float.)
+\subsection{\%peek}
 
+The \texttt{\%peek} command is used to perform a namespace read request (a.k.a. scry) using Arvo's external peek interface \texttt{arm +22 in arvo.hoon}\footnote{\url{https://github.com/urbit/urbit/blob/develop/pkg/arvo/sys/arvo.hoon#L1774}}. The argument to \texttt{\%peek} is the \texttt{nom} input to \texttt{+peek} in \texttt{arvo.hoon} (\texttt{lyc} is auto-filled as \texttt{[~ ~]}, i.e., "request from self"). That is to say that the argument to \texttt{\%peek} must have type:
+\begin{verbatim}
+$+  each  path
+$%  [%once vis=view syd=desk tyl=spur]
+    [%beam vis=view bem=beam]
+==
+\end{verbatim}
+Practically speaking, this means that the input will look like one of these three examples:
+\begin{verbatim}
+[%& p=path]
+[%| p=[%once vis=view syd=desk tyl=spur]]
+[%| p=[%beam vis=view bem=beam]]
+\end{verbatim}
+Where:
+\begin{itemize}
+  \item \texttt{path} is a \texttt{[view beam]}, with the \texttt{view} passed in as a \texttt{coin}
+  \item \texttt{view} is the vane code for the scry, as well as an optional care, possibly appended to the vane (e.g. \texttt{\%j}, \texttt{\%gx}, etc.)
+  \item \texttt{beam} is a \texttt{[beak spur]}
+  \item \texttt{desk} is used to auto-generate a \texttt{beak}: \texttt{[our desk now]}
+  \item \texttt{spur} is the scry endpoint for the agent or vane
+\end{itemize}
 
-\section{A Wild Ernest Appears}
+The output of a \texttt{\%peek} command is \texttt{[\%peek (unit (unit scry-output))]}, where \texttt{~} means that the scry endpoint is invalid, and \texttt{[~ ~]} means that the scry resolved to nothing.
 
-You can have as many sections as make sense.  Only sections and subsections appear in the table of contents.
+\subsection{\%peel}
 
+\texttt{\%peel} attempts to emulate a scry-like namespace, like the one used by Arvo and accessed by \texttt{\%peek}. The argument to \texttt{\%peel} should be a path. Valid paths result in a non-null \texttt{unit} containing the result of the scry. Invalid paths result in null (i.e. \texttt{~}). The valid paths and the data they return are:
+
+\begin{verbatim}
+/help   (unit (list path))  Supported %peel paths
+/live   (unit ~)            Pier health check; succeeds if pier is running
+/khan   (unit ~)            Khan health check; succeeds if Khan vane is running
+/info   (unit mass)         Pier info as a mass
+/v      (unit @t)           Returns version of the Vere binary as a cord
+/who    (unit @)            Returns the Azimuth identity of the ship as an atom
+\end{verbatim}
+
+Note that the pier info above is returned as a \texttt{mass} report, i.e. type \texttt{(pair cord (each * (list mass)))}. This is not the same as the \texttt{|mass} memory report. \texttt{/mass} is meant to be a valid \texttt{\%peel} path which returns the \texttt{|mass} memory report, but it is currently unimplemented.
+
+\section{\%lick}
+
+Altho also dealing with interprocess communication, Lick was designed for a very different scenario than Khan:  to allow external processes, in particular hardware drivers, to intercommunicate with Urbit.  (This breached the Earth/Mars divide.)  Thus \texttt{/sys/vane/lick} focuses on instrumenting a low-level noun interfaces over domain sockets.
+
+\texttt{\%lick} manages IPC ports, and the communication between Urbit applications and POSIX applications via these ports. Other vanes and applications ask \texttt{\%lick} to open an IPC port, notify it when something is connected or disconnected, and transfer data between itself and the Unix application.
+
+Lick works by opening a Unix socket for a particular process, which allows serialized IPC communications.  These involve a jammed noun so the receiving process needs to know how to communicate in nouns.
+
+The IPC ports Lick creates are Unix domain sockets (\texttt{AF\_UNIX} address family) of the \texttt{SOCK\_STREAM} type.
+
+The connexions are made via filepaths in \texttt{.urb/dev} of the pier.
+
+The format is:
+
+\begin{verbatim}
+V.BBBB.JJJJ.JJJJ...
+\end{verbatim}
+
+\begin{itemize}
+  \item \texttt{V} is the version
+  \item \texttt{B} is the jam size in bytes (little endian)
+  \item \texttt{J} is the jammed noun (little endian)
+\end{itemize}
+
+The process on the host OS must therefore strip the first 5 bytes, \texttt{++cue}\footnote{\url{https://docs.urbit.org/language/hoon/reference/stdlib/2p#cue}} the jamfile, check the mark and (most likely) convert the noun into a native data structure.
+
+\subsection{\texttt{/sys/lull} Definition}
+
+\begin{verbatim}
+::                                              ::::
+::::                    ++lick                    ::  (1j) IPC
+  ::                                            ::::
+++  lick  ^?
+  |%
+  +$  gift                                      ::  out result <-$
+    $%  [%spin =name]                           ::  open an IPC port
+        [%shut =name]                           ::  close an IPC port
+        [%spit =name =mark =noun]               ::  spit a noun to the IPC port
+        [%soak =name =mark =noun]               ::  soak a noun from the IPC port
+    ==
+  +$  task                                      ::  in request ->$
+    $~  [%vega ~]                               ::
+    $%  $>(%born vane-task)                     ::  new unix process
+        $>(%trim vane-task)                     ::  trim state
+        $>(%vega vane-task)                     ::  report upgrade
+        [%spin =name]                           ::  open an IPC port
+        [%shut =name]                           ::  close an IPC port
+        [%spit =name =mark =noun]               ::  spit a noun to the IPC port
+        [%soak =name =mark =noun]               ::  soak a noun from the IPC port
+    ==
+  ::
+  +$  name  path
+  --  ::lick
+\end{verbatim}
+
+To evaluate what \texttt{/sys/vane/lick} is doing, we need to look at Unix's IPC model briefly.  IPC ("interprocess communication") describes any way that two processes in an operating system's shared context have to communicate with each other.  \texttt{\%lick} focuses on Unix domain sockets\footnote{\url{https://en.wikipedia.org/wiki/Unix_domain_socket}}, which are just communication endpoints\footnote{\url{https://man7.org/linux/man-pages/man7/unix.7.html}}.
+
+For instance, a valid use of \texttt{\%lick} would use cards that look like this:
+
+\begin{verbatim}
+++  init  [[%pass / %arvo %l %spin /control]~ this]
+::
+++  on-arvo
+  |=  [=wire =sign-arvo]
+  ?+  sign-arvo  (on-arvo:def wire sign-arvo)
+      [%lick %soak *]
+      ?+  mark.sign-arvo  [~ this]
+      ::
+        %connect
+      ~&  >  "connect"
+      :_  this  [%pass /spit %arvo %l %spit /control %init area.state]~
+  ==  ==
+::
+++  send-state
+  |=  =state
+  ^-  card:agent:gall
+  [%pass /spit %arvo %l %spit /control %state [slick:state face.state food.state live.state]]
+\end{verbatim}
+
+The vane definition of \texttt{/sys/vane/lick} is even simpler than \texttt{/sys/vane/khan}:  it has no \texttt{++abet} core and primarily communicates to the \texttt{unix-duct} in its state.  The \texttt{owner} is a \texttt{duct} to handle the return \texttt{\%soak}.
+
+Gall needs to wrap \texttt{\%soak} and \texttt{\%spit} to route properly.  See e.g. \texttt{\%++ap-generic-take}.  This lets multiple agents share sockets with the same name, and each agent can have its own folder.
+
+%\section{Background and Literature}
+
+%Exposite the relevant background and literature.
+
+%\begin{enumerate}
+  %\item  Prefer to \texttt{enumerate}.
+  %\item  It is easier to refer to than \texttt{itemize}.
+%\end{enumerate}
+
+%\noindent
+%Mark \texttt{\textbackslash noindent} in paragraphs that continue the thought of an \texttt{\textbackslash enumerate} block.
+%
+%\section{Urbit's Implementation}
+%
+%Oftentimes you will then turn to exploring how Urbit or closely related systems like Nockchain have approached or considered a problem.
+%
+%\lstset{language=C}
+%\begin{lstlisting}
+%#include <stdio.h>
+%
+%double compute(float a, float b) {
+    %return a * a + b * b;
+%}
+%
+%int main() {
+    %float x = 2.5;
+    %float y = 3.7;
+%
+    %double result = compute(x, y);
+%
+    %printf("Result: %lf\n", result);
+%
+    %return 0;
+%}
+%\end{lstlisting}
+%
+%\noindent
+%That code snippet was part of the text, and not a standalone entity to which we make separate repeated reference.
+%
+%\begin{figure}
+  %\begin{lstlisting}[language=Python, caption={Example Python Code}, label={lst:example}]
+  %def hello_world():
+      %print("Hello, world!")
+  %\end{lstlisting}
+%\end{figure}
+%
+%Refer to the code listing: Listing~\ref{lst:example}.  (Note that we don't suppress indentation since it's a float.)
+%
+
+%\section{A Wild Ernest Appears}
+%
+%You can have as many sections as make sense.  Only sections and subsections appear in the table of contents.
+%
 \section{Conclusion}
 
 To summarize, why did you write it?  Why do we care?  What impact should it have on Urbit development?
