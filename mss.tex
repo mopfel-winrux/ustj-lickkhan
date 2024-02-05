@@ -45,7 +45,8 @@ In this groundbreaking paper, we embark on a cosmic journey with the renowned ch
 \tableofcontents
 
 \section{Introduction}
-
+%Section 1: can do explicit callback to Moron Labs post (we should add that to the standard mss.bib)
+% When did urbit backoff on the earth only calls mars? (eyre and iris) Urbit had to run on a VM
 In the realm of software, two worlds exist in stark contrast: 
 Earth, the familiar domain of established software paradigms, bustling with complex and varied digital ecosystems, 
 and Mars, the enigmatic realm of Urbit, a system as pristine and archaic as the Martian landscape itself. 
@@ -57,6 +58,8 @@ It is a world where software exists as a Maxwellian construct, untouched and una
 Yet, in this isolation lies a profound awareness - an understanding by the Martians that there exist diverse forms of computing with which they must engage. 
 Mars, in its wisdom, accommodates these external entities, allowing them to interact in a dialect familiar to its inhabitants: the language of nouns.
 
+In the original explanation of of Urbit, \citeauthor{Yarvin2010}, explicitly says ``The general structure of cross-planet computation is that Earth always calls Mars; Mars never calls Earth. The latter would be quite impossible, since Earth code is non-Maxwellian. There is only one way for a Maxwellian computer to run non-Maxwellian code: in a Maxwellian emulator.'' This however has never been true for Urbit as it was implemented. Urbit has two vanes \texttt{\%eyre} and \texttt{\%iris} that are written as a specific interface to Earth (a web server and curl, respectively). One can even make the argument that Urbit running on a virtual machine specifically breaks this convention. 
+
 Our journey into this uncharted territory begins with a deep dive into the architecture of Urbit, focusing on the foundational layer upon which Arvo, Urbit's kernel, operates.
 This exploration will illuminate the operational dynamics and philosophical underpinnings that make Urbit a universe apart. 
 Following this, we delve into the intricacies of two pivotal components of Urbit’s ecosystem: 
@@ -67,9 +70,7 @@ Through this exploration, we aim to demystify the enigma of Urbit and bridge the
 \section{Urbit's Unique Landscape}
 
 \subsection{Arvo: The Heart of Martian Computing}
-Arvo, also known as Urbit OS, represents a paradigm shift in operating system design. Unlike traditional operating systems that operate on preemptive multitasking and complex event networks, Arvo is a purely functional operating system, characterized by its deterministic nature and compact size. The entire Urbit stack is about 30,000 lines of code, with Arvo itself being only around 1,000 lines. This small codebase is intentional, reflecting a philosophy that system administration complexity is directly proportional to code size.
-
-Arvo's design philosophy positions it not just as an operating system but as a new frontier in the peer-to-peer internet space. Unlike traditional operating systems like Windows, macOS, or Linux, Arvo doesn't aim to replace them; instead, it offers a unique user experience akin to a web browser, yet it is a fully-fledged OS in its own right. This distinctive approach enables Arvo to function within a virtual machine, theoretically capable of running on bare metal.
+Arvo, also known as Urbit OS, represents a paradigm shift in operating system design. Unlike traditional operating systems that operate on preemptive multitasking and complex event networks, Arvo is a purely functional operating system, characterized by its deterministic nature and compact size. The entire Urbit stack is about 80,000 lines of code, with Arvo itself being only around 2,000 lines. This small codebase is intentional, reflecting a philosophy that system administration complexity is directly proportional to code size.
 
 Arvo's unique architecture avoids what is referred to as "event spaghetti" by maintaining a clear causal chain for every computation. Each chain begins with a Unix I/O event and progresses through a series of steps until the computation's terminal cause. This deterministic nature allows for a high level of predictability and control, a stark contrast to the non-deterministic nature of most Earth-based operating systems.
 
@@ -87,6 +88,12 @@ The vision of Urbit, with Arvo at its core, is to transition from developer-host
 
 Vere, the runtime of Urbit, plays a critical role in actualizing the Martian computing model on Earth-based hardware. As the Nock interpreter written in C, Vere is intricately optimized to run Arvo, ensuring seamless translation of its deterministic operations into practical execution on conventional systems.
 
+The architecture of Vere is bifurcated into two distinct parts: the \texttt{king} and the \texttt{serf}. The \texttt{king} component is responsible for handling vane I/O and managing the effects on Earth. In contrast, the \texttt{serf} operates as the process running the Arvo virtual machine (VM). This division of responsibilities allows for a clear delineation of tasks within the Vere runtime, enhancing its efficiency and robustness.
+
+Communication between the \texttt{king} and \texttt{serf} is achieved through an Inter-Process Communication (IPC) port. This IPC mechanism facilitates a continuous dialogue between the two components, ensuring that the \texttt{king} can effectively manage external interactions while the \texttt{serf} maintains the integrity of the Arvo VM.
+
+A core opcode in Urbit's assembly language (\texttt{nock}) is the \texttt{hint} opcode (opcode 11) this allows Urbit to pass hints to Vere which produces effects on Earth. This bridges the Earth/Mars gap and allows for vanes to interact outside of Mars.
+
 Key to Vere's functionality is how it processes events. Events from the Unix environment are passed to Vere, which then translates and injects them into Arvo. This mechanism demonstrates a profound integration between Vere and Arvo, where Vere possesses direct knowledge of Arvo's state. Notably, Vere can 'scry' or query Arvo's state without altering it, retrieving information as needed. This capability allows Vere to maintain the integrity of Arvo's deterministic model while enabling dynamic interaction with the outside world.
 
 Urbit's use of Unix as its BIOS is a pivotal aspect of its runtime operation. By leveraging the robust, widely-used Unix system, Vere ensures that Urbit can run on a broad range of hardware platforms, effectively making Urbit's Martian technology accessible and operable in Earth's diverse computing environments. This strategic use of Unix not only provides the necessary I/O and optimizations for Arvo but also ensures that Urbit's advanced and unique software architecture can function in tandem with the existing, established hardware and software ecosystems of Earth.
@@ -96,9 +103,11 @@ Moreover, Vere's design allows it to inject events into Arvo, a feature crucial 
 Thus, Vere serves as more than just a bridge between Martian technology and Earthly hardware; it is a finely tuned conduit, optimized to uphold and facilitate the unique computational paradigm that Arvo embodies.
 
 
-\section{Khan - The High-Level Thread Interface of Urbit}
+\section{\%khan - The High-Level Thread Interface of Urbit}
 
 Khan, as a crucial component of Urbit's architecture, functions as a high-level thread interface, pivotal for managing both internal and external communications within the Urbit ecosystem. It is designed to efficiently handle complex I/O operations, employing an IO monad coupled with an exception monad. This dual-mechanism approach allows Khan to adeptly manage complex IO tasks while effectively handling potential failures.
+
+Khan allows threads to be triggered from outside of Urbit. A thread is a monadic function that takes arguments and produces a result. It may perform input and output while running, so it is not a pure function. A thread's strength is that it can easily perform complex IO operations. It uses what's often called the IO monad (plus the exception monad) to provide a natural framework for IO. A thread's weakness is that it's impermanent and may fail unexpectedly. In most of its intermediate states, it expects only a small number of events (usually one), so if it receives anything it didn't expect, it fails. When code is upgraded, it's impossible to upgrade a running thread, so it fails.
 
 Khan's role in Urbit can be likened to that of a control plane. Its primary function is to execute threads via a Unix Socket and relay the results back. This setup supports various thread-running modes, enhancing the flexibility of Urbit's computing environment and allowing for diverse interaction methods with both internal and external processes.
 
@@ -106,18 +115,31 @@ At its core, Khan's design revolves around the use of 'threads', which are monad
 
 Khan's implementation ensures that Urbit serves as a personal server, replacing multiple developer-hosted web services on foreign servers with self-hosted applications on a single personal server. Its design underscores Urbit's commitment to user ownership and data management, setting it apart from the conventional model of cloud-based services and centralized data management prevalent in Earth-based systems.
 
-\section{\texttt{conn.c}} %Rewrite so its not a blatant copy of alex's work
+\section{\texttt{conn.c}} 
 
 \texttt{conn.c}\footnote{\url{https://github.com/urbit/vere/blob/develop/pkg/vere/io/conn.c}} is a driver in Vere. It is a part of the "King" (a.k.a. "Urth") process. It exposes a \texttt{Unix domain socket}\footnote{\url{https://en.wikipedia.org/wiki/Unix_domain_socket}} at \texttt{/path/to/pier/.urb/conn.sock} for sending/receiving data from external processes.
 
 The functionality of conn.c, particularly its ability to dispatch messages and handle various types of requests, is critical for the command of urbit's control plane. It serves as a way for unix processes to receive insights about what is happening on urbit. It also allows for pass commands either \%khan and the injection of raw kernel moves into the system. The implication of this means that whoever is running your urbit runtime controls your urbit. 
 
-From a technical perspective, conn.c accepts newt-encoded \texttt{++jam}med nouns which take the form \texttt{[request-id command arguments]}. This structure allows for a variety of commands to be executed, including 
+From a technical perspective, conn.c accepts newt-encoded \texttt{++jam}med nouns which take the form \texttt{[request-id command arguments]}. 
+The newt-encoded format is:
+
+\begin{verbatim}
+V.BBBB.JJJJ.JJJJ...
+\end{verbatim}
+
+\begin{itemize}
+  \item \texttt{V} is the version
+  \item \texttt{B} is the jam size in bytes (little endian)
+  \item \texttt{J} is the jammed noun (little endian)
+\end{itemize}
+
+This structure allows for a variety of commands to be executed, including 
 
 \begin{enumerate}
   \item \texttt{\%ovum} - the injection of raw kernel moves 
   \item \texttt{\%fyrd} - a direct shortcut to Khan commands
-  \item \texttt{\%urth} - runtime subcommands like \texttt{\%pack}` or \texttt{\%meld}
+  \item \texttt{\%urth} - runtime subcommands like \texttt{\%pack} or \texttt{\%meld}
   \item \texttt{\%peek} - namespace scry requests into Arvo
   \item \texttt{\%peel} - emulated namespace scry requests into Vere
 \end{enumerate}
@@ -130,133 +152,18 @@ A valid \texttt{conn.c} command produces a newt-encoded jammed noun with type \t
 
 An invalid \texttt{conn.c} command produces a newt-encoded jammed noun with type \texttt{[0 \%bail error-code error-string]}. 
 
-\subsection{\%ovum}
+\section{\%lick - The Low Level IPC Interface}
 
-The argument to an \texttt{\%ovum} command is a raw kernel move which is injected directly into the Arvo event loop. This is a very powerful - and potentially dangerous - tool. For example, if a ship somehow got into a state where Clay was no longer working properly (meaning new files could not be compiled to fix the state of the kernel), the source code for a new, working Clay could be directly injected into the ship using an \texttt{\%ovum}.
-
-The output of an \texttt{\%ovum} command is:
-\begin{itemize}
-  \item \texttt{[\%news \%done]} if the move completed successfully
-  \item \texttt{[\%news \%drop]} if the move was dropped
-  \item \texttt{[\%bail goof]} if an error occurred
-\end{itemize}
-
-\subsection{\%fyrd}
-
-\texttt{\%fyrd} is a direct shortcut to the Khan vane. The arguments to a \texttt{\%fyrd} command are (in order):
-\begin{enumerate}
-  \item The name of the desk in which the thread lives (e.g. \texttt{\%base}) or \texttt{beak} for the thread (e.g. \texttt{[\%zod \%base \%10]})
-  \item The name of the thread (e.g. \texttt{\%hi})
-  \item Mark to which the output should be cast (e.g. \texttt{\%tape})
-  \item Mark for how to interpret the input argument to thread (e.g. \texttt{\%ship})
-  \item Input argument to thread (e.g. \texttt{\~zod})
-\end{enumerate}
-
-The output of a \texttt{\%fyrd} command is \texttt{[\%avow (each page goof)]}, the value of \texttt{each} depending on whether the thread succeeded or not.
-
-\subsection{\%urth}
-
-The argument to the \texttt{\%urth} command is a subcommand for the action to perform. Currently, the only valid commands are \texttt{\%pack} and \texttt{\%meld}.
-
-\texttt{\%urth} will return \texttt{\%\&} if given a valid command as input, otherwise it will return \texttt{[0 \%bail 0xfffffff9 \%urth-bad]}. No other output is emitted.
-
-\subsection{\%peek}
-
-The \texttt{\%peek} command is used to perform a namespace read request (a.k.a. scry) using Arvo's external peek interface \texttt{arm +22 in arvo.hoon}\footnote{\url{https://github.com/urbit/urbit/blob/develop/pkg/arvo/sys/arvo.hoon#L1774}}. The argument to \texttt{\%peek} is the \texttt{nom} input to \texttt{+peek} in \texttt{arvo.hoon} (\texttt{lyc} is auto-filled as \texttt{[~ ~]}, i.e., "request from self"). That is to say that the argument to \texttt{\%peek} must have type:
-\begin{verbatim}
-$+  each  path
-$%  [%once vis=view syd=desk tyl=spur]
-    [%beam vis=view bem=beam]
-==
-\end{verbatim}
-Practically speaking, this means that the input will look like one of these three examples:
-\begin{verbatim}
-[%& p=path]
-[%| p=[%once vis=view syd=desk tyl=spur]]
-[%| p=[%beam vis=view bem=beam]]
-\end{verbatim}
-Where:
-\begin{itemize}
-  \item \texttt{path} is a \texttt{[view beam]}, with the \texttt{view} passed in as a \texttt{coin}
-  \item \texttt{view} is the vane code for the scry, as well as an optional care, possibly appended to the vane (e.g. \texttt{\%j}, \texttt{\%gx}, etc.)
-  \item \texttt{beam} is a \texttt{[beak spur]}
-  \item \texttt{desk} is used to auto-generate a \texttt{beak}: \texttt{[our desk now]}
-  \item \texttt{spur} is the scry endpoint for the agent or vane
-\end{itemize}
-
-The output of a \texttt{\%peek} command is \texttt{[\%peek (unit (unit scry-output))]}, where \texttt{~} means that the scry endpoint is invalid, and \texttt{[~ ~]} means that the scry resolved to nothing.
-
-\subsection{\%peel}
-
-\texttt{\%peel} attempts to emulate a scry-like namespace, like the one used by Arvo and accessed by \texttt{\%peek}. The argument to \texttt{\%peel} should be a path. Valid paths result in a non-null \texttt{unit} containing the result of the scry. Invalid paths result in null (i.e. \texttt{~}). The valid paths and the data they return are:
-
-\begin{verbatim}
-/help   (unit (list path))  Supported %peel paths
-/live   (unit ~)            Pier health check; succeeds if pier is running
-/khan   (unit ~)            Khan health check; succeeds if Khan vane is running
-/info   (unit mass)         Pier info as a mass
-/v      (unit @t)           Returns version of the Vere binary as a cord
-/who    (unit @)            Returns the Azimuth identity of the ship as an atom
-\end{verbatim}
-
-Note that the pier info above is returned as a \texttt{mass} report, i.e. type \texttt{(pair cord (each * (list mass)))}. This is not the same as the \texttt{|mass} memory report. \texttt{/mass} is meant to be a valid \texttt{\%peel} path which returns the \texttt{|mass} memory report, but it is currently unimplemented.
-
-\section{\%lick}
-
-Altho also dealing with interprocess communication, Lick was designed for a very different scenario than Khan:  to allow external processes, in particular hardware drivers, to intercommunicate with Urbit.  (This breached the Earth/Mars divide.)  Thus \texttt{/sys/vane/lick} focuses on instrumenting a low-level noun interfaces over domain sockets.
+Although also dealing with interprocess communication, \texttt{\%lick} \citep{UIP-101} was designed for a very different scenario than Khan:  to allow external processes, in particular hardware drivers, to intercommunicate with Urbit.  (This breached the Earth/Mars divide.)  Thus \texttt{/sys/vane/lick} focuses on instrumenting a low-level noun interfaces over domain sockets.
 
 \texttt{\%lick} manages IPC ports, and the communication between Urbit applications and POSIX applications via these ports. Other vanes and applications ask \texttt{\%lick} to open an IPC port, notify it when something is connected or disconnected, and transfer data between itself and the Unix application.
-
 Lick works by opening a Unix socket for a particular process, which allows serialized IPC communications.  These involve a jammed noun so the receiving process needs to know how to communicate in nouns.
-
 The IPC ports Lick creates are Unix domain sockets (\texttt{AF\_UNIX} address family) of the \texttt{SOCK\_STREAM} type.
-
 The connexions are made via filepaths in \texttt{.urb/dev} of the pier.
-
-The format is:
-
-\begin{verbatim}
-V.BBBB.JJJJ.JJJJ...
-\end{verbatim}
-
-\begin{itemize}
-  \item \texttt{V} is the version
-  \item \texttt{B} is the jam size in bytes (little endian)
-  \item \texttt{J} is the jammed noun (little endian)
-\end{itemize}
 
 The process on the host OS must therefore strip the first 5 bytes, \texttt{++cue}\footnote{\url{https://docs.urbit.org/language/hoon/reference/stdlib/2p#cue}} the jamfile, check the mark and (most likely) convert the noun into a native data structure.
 
-\subsection{\texttt{/sys/lull} Definition}
-
-\begin{verbatim}
-::                                              ::::
-::::                    ++lick                    ::  (1j) IPC
-  ::                                            ::::
-++  lick  ^?
-  |%
-  +$  gift                                      ::  out result <-$
-    $%  [%spin =name]                           ::  open an IPC port
-        [%shut =name]                           ::  close an IPC port
-        [%spit =name =mark =noun]               ::  spit a noun to the IPC port
-        [%soak =name =mark =noun]               ::  soak a noun from the IPC port
-    ==
-  +$  task                                      ::  in request ->$
-    $~  [%vega ~]                               ::
-    $%  $>(%born vane-task)                     ::  new unix process
-        $>(%trim vane-task)                     ::  trim state
-        $>(%vega vane-task)                     ::  report upgrade
-        [%spin =name]                           ::  open an IPC port
-        [%shut =name]                           ::  close an IPC port
-        [%spit =name =mark =noun]               ::  spit a noun to the IPC port
-        [%soak =name =mark =noun]               ::  soak a noun from the IPC port
-    ==
-  ::
-  +$  name  path
-  --  ::lick
-\end{verbatim}
-
-To evaluate what \texttt{/sys/vane/lick} is doing, we need to look at Unix's IPC model briefly.  IPC ("interprocess communication") describes any way that two processes in an operating system's shared context have to communicate with each other.  \texttt{\%lick} focuses on Unix domain sockets\footnote{\url{https://en.wikipedia.org/wiki/Unix_domain_socket}}, which are just communication endpoints\footnote{\url{https://man7.org/linux/man-pages/man7/unix.7.html}}.
+To understand what \texttt{\%lick} is doing, we need to look at Unix's IPC model briefly.  IPC ("interprocess communication") describes any way that two processes in an operating system's shared context have to communicate with each other.  \texttt{\%lick} focuses on Unix domain sockets\footnote{\url{https://en.wikipedia.org/wiki/Unix_domain_socket}}, which are just communication endpoints\footnote{\url{https://man7.org/linux/man-pages/man7/unix.7.html}}.
 
 For instance, a valid use of \texttt{\%lick} would use cards that look like this:
 
@@ -271,82 +178,37 @@ For instance, a valid use of \texttt{\%lick} would use cards that look like this
       ::
         %connect
       ~&  >  "connect"
-      :_  this  [%pass /spit %arvo %l %spit /control %init area.state]~
-  ==  ==
+      :_  this  
+          [%pass /spit %arvo %l %spit /control %init area.state]~
+      ==  
+  ==
 ::
 ++  send-state
   |=  =state
   ^-  card:agent:gall
-  [%pass /spit %arvo %l %spit /control %state [slick:state face.state food.state live.state]]
+  :*  %pass 
+      /spit 
+      %arvo %l 
+      %spit 
+      /control 
+      %state 
+      [slick:state face.state food.state live.state]
+   ==
 \end{verbatim}
 
-The vane definition of \texttt{/sys/vane/lick} is even simpler than \texttt{/sys/vane/khan}:  it has no \texttt{++abet} core and primarily communicates to the \texttt{unix-duct} in its state.  The \texttt{owner} is a \texttt{duct} to handle the return \texttt{\%soak}.
+The vane definition of \texttt{/sys/vane/lick} is even simpler than \texttt{/sys/vane/khan}:  it has no \texttt{++abet} core and primarily communicates to the \texttt{unix-duct} in its state.  The \texttt{+\$owner} is a \texttt{+\$duct} to handle the return \texttt{\%soak}.
+
+Arvo will send three types of \texttt{\%soak}s to an open \texttt{\%lick} port. These \texttt{\%soak}s are \texttt{\%connect} when the first connection is established on the Earth-side IPC port, \texttt{\%disconnect} when the last connection is broken on the Earth-side IPC port, and \texttt{\%error} when an error occurs. \texttt{\%lick} also will send a \texttt{\%disconnect} \texttt{\%soak} to every agent when Vere is started.
 
 Gall needs to wrap \texttt{\%soak} and \texttt{\%spit} to route properly.  See e.g. \texttt{\%++ap-generic-take}.  This lets multiple agents share sockets with the same name, and each agent can have its own folder.
 
-%\section{Background and Literature}
-
-%Exposite the relevant background and literature.
-
-%\begin{enumerate}
-  %\item  Prefer to \texttt{enumerate}.
-  %\item  It is easier to refer to than \texttt{itemize}.
-%\end{enumerate}
-
-%\noindent
-%Mark \texttt{\textbackslash noindent} in paragraphs that continue the thought of an \texttt{\textbackslash enumerate} block.
-%
-%\section{Urbit's Implementation}
-%
-%Oftentimes you will then turn to exploring how Urbit or closely related systems like Nockchain have approached or considered a problem.
-%
-%\lstset{language=C}
-%\begin{lstlisting}
-%#include <stdio.h>
-%
-%double compute(float a, float b) {
-    %return a * a + b * b;
-%}
-%
-%int main() {
-    %float x = 2.5;
-    %float y = 3.7;
-%
-    %double result = compute(x, y);
-%
-    %printf("Result: %lf\n", result);
-%
-    %return 0;
-%}
-%\end{lstlisting}
-%
-%\noindent
-%That code snippet was part of the text, and not a standalone entity to which we make separate repeated reference.
-%
-%\begin{figure}
-  %\begin{lstlisting}[language=Python, caption={Example Python Code}, label={lst:example}]
-  %def hello_world():
-      %print("Hello, world!")
-  %\end{lstlisting}
-%\end{figure}
-%
-%Refer to the code listing: Listing~\ref{lst:example}.  (Note that we don't suppress indentation since it's a float.)
-%
-
-%\section{A Wild Ernest Appears}
-%
-%You can have as many sections as make sense.  Only sections and subsections appear in the table of contents.
-%
 \section{Conclusion}
 
-To summarize, why did you write it?  Why do we care?  What impact should it have on Urbit development?
+As Urbit had to deal with the reality of running on Earth software, Developers had to come up with various ways of communicating between these systems. Originally the two vanes \texttt{\%eyre} and \texttt{\%iris} were used as an HTTP client and server, breaking the ``Earth calls Mars; Mars doesn't call Earth'' dynamic. 
 
-Your bibliography is a separate BibTeX file.  We use the \texttt{plainnat} bibliography style.  You can use \texttt{natbib} citation commands like \texttt{\textbackslash citep\{wikipedia\}} for parenthesized references.  Use \texttt{\textbackslash citet\{wikipedia\}} for inline references.  You can also use \texttt{\textbackslash citeauthor\{wikipedia\}} for the principal author's name.
+Recently, two other vanes, \texttt{\%khan} and \texttt{\%lick} have been developed that hold true to the original idea of communication between Earth and Mars. These vanes force Earth to speak to Mars in a language it can understand, nouns.
 
-``You can use traditional TeX---or LaTeX---representations'' \citep{Varney1987}.
 
-“Or you can use fancy quotes—and symbols.”
 
-\bibliographystyle{plainnat}
-\bibliography{ernest}
+\printbibliography
 \end{document}
