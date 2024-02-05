@@ -35,7 +35,12 @@
 \thispagestyle{firststyle}
 
 \begin{abstract}
-In this groundbreaking paper, we embark on a cosmic journey with the renowned character Ernest P. Worrell as he ventures into the unexplored realm of Martian computing. Drawing inspiration from Ernest's comically ingenious encounters with everyday challenges, we investigate the foundations of what we term "Artificial Stupidity." As Ernest grapples with Martian technology, we delve into the intricacies of programming errors, algorithmic missteps, and the curious phenomena that arise when human-like intelligence meets extraterrestrial computing systems. Our analysis sheds light on the unexpected intersections between humor, artificial intelligence, and the cosmic absurdity of Martian software. Join us in this interplanetary exploration as we unravel the mysteries of Artificial Stupidity through the lens of Ernest's interstellar escapades.
+  This paper explores the innovative approaches undertaken by developers to enable effective communication between the Urbit system and conventional Earth-based software systems. Initially, Urbit's integration with external systems relied on the use of two specific vanes, \texttt{\%eyre} and \texttt{\%iris}, serving as HTTP client and server respectively. This setup, however, presented challenges to the ideal of autonomous operation envisaged for Urbit, traditionally characterized by the principle that "Earth calls Mars; Mars doesn't call Earth."
+
+  Addressing these challenges, the paper introduces the development of two new vanes, \texttt{\%khan} and \texttt{\%lick}, which embody the core principle of uncontaminated communication. These advancements allow for a refined interaction model where Earth-based systems communicate with Urbit in a Urbit's own language, nouns.
+
+The implications of these developments are significant, offering a novel framework for the integration of distinct computational ecosystems. This paper discusses the technical and conceptual underpinnings of these vanes, their development process, and the broader implications for Urbit's interaction with conventional software systems.
+
 \end{abstract}
 
 % We will adjust page numbering in final editing.
@@ -45,8 +50,6 @@ In this groundbreaking paper, we embark on a cosmic journey with the renowned ch
 \tableofcontents
 
 \section{Introduction}
-%Section 1: can do explicit callback to Moron Labs post (we should add that to the standard mss.bib)
-% When did urbit backoff on the earth only calls mars? (eyre and iris) Urbit had to run on a VM
 In the realm of software, two worlds exist in stark contrast: 
 Earth, the familiar domain of established software paradigms, bustling with complex and varied digital ecosystems, 
 and Mars, the enigmatic realm of Urbit, a system as pristine and archaic as the Martian landscape itself. 
@@ -205,8 +208,7 @@ Gall needs to wrap \texttt{\%soak} and \texttt{\%spit} to route properly.  See e
 \section{Conclusion}
 
 As Urbit had to deal with the reality of running on Earth software, Developers had to come up with various ways of communicating between these systems. Originally the two vanes \texttt{\%eyre} and \texttt{\%iris} were used as an HTTP client and server, breaking the ``Earth calls Mars; Mars doesn't call Earth'' dynamic. 
-
-Recently, two other vanes, \texttt{\%khan} and \texttt{\%lick} have been developed that hold true to the original idea of communication between Earth and Mars. These vanes force Earth to speak to Mars in a language it can understand, nouns.
+Recently, two other vanes, \texttt{\%khan} and \texttt{\%lick} have been developed that hold true to the necessity idea of communication between Earth and Mars. These vanes force Earth to speak to Mars in a language it can understand, nouns.
 
 
 
