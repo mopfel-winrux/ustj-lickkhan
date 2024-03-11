@@ -156,6 +156,33 @@ To understand what \texttt{\%lick} is doing, we need to briefly examine Unix's {
 
 For instance, a valid use of \texttt{\%lick} would use cards to communicate (Listing~\ref{lst:lick-cards}).  Outbound moves are specified as \lstinline[style=inlinecode]{%spit}.
 
+\begin{lstlisting}[
+  float,
+  style=listingcode,
+  caption={Usage of \texttt{\%lick} cards.},
+  label={lst:lick-cards}
+]
+++  init  [[%pass / %arvo %l %spin /control]~ this]
+++  on-arvo
+  |=  [=wire =sign-arvo]
+  ?+    sign-arvo  (on-arvo:def wire sign-arvo)
+      [%lick %soak *]
+    ?+    mark.sign-arvo  [~ this]
+        %connect
+      :_  this
+      :~  :*  %pass  /spit  %arvo  %l
+              %spit  /control  %init  area.state
+      ==  ==
+  ==  ==
+++  send-state
+  |=  =state
+  ^-  card:agent:gall
+  :*  %pass  /spit  %arvo  %l 
+      %spit  /control  %state
+      [slick:state face.state food.state live.state]
+  ==
+\end{lstlisting}
+
 \texttt{\%lick}'s vane definition is even simpler than \texttt{\%khan}'s:  it has no \texttt{++abet} nested-core pattern and primarily communicates to a \texttt{unix-duct} provided in its state.  The \lstinline[style=inlinecode]{+$owner} is a \lstinline[style=inlinecode]{+$duct} to handle the return \lstinline[style=inlinecode]{%soak}.
 
 Arvo will send three types of \lstinline[style=inlinecode]{%soak}s to an open \texttt{\%lick} port.  These \lstinline[style=inlinecode]{%soak}s may be one of:
@@ -169,42 +196,6 @@ Arvo will send three types of \lstinline[style=inlinecode]{%soak}s to an open \t
 \texttt{\%lick} also will send a \lstinline[style=inlinecode]{%disconnect} \lstinline[style=inlinecode]{%soak} to every agent when Vere is started.
 
 Gall needs to wrap \lstinline[style=inlinecode]{%soak} and \lstinline[style=inlinecode]{%spit} to route properly (see e.g. \lstinline[style=inlinecode]{++ap-generic-take}).  This permits multiple agents to share sockets with the same name while still organizing an agent's sockets by a unique path.
-
-\begin{lstlisting}[
-  float,
-  style=listingcode,
-  caption={Usage of \texttt{\%lick} cards.},
-  label={lst:lick-cards}
-]
-++  init  [[%pass / %arvo %l %spin /control]~ this]
-::
-++  on-arvo
-  |=  [=wire =sign-arvo]
-  ?+  sign-arvo  (on-arvo:def wire sign-arvo)
-      [%lick %soak *]
-      ?+    mark.sign-arvo  [~ this]
-        ::
-          %connect
-        ~&  >  "connect"
-        :_  this
-        :~  :*  %pass  /spit  %arvo  %l
-                %spit  /control  %init  area.state
-        ==  ==
-      ==
-  ==
-::
-++  send-state
-  |=  =state
-  ^-  card:agent:gall
-  :*  %pass 
-      /spit 
-      %arvo %l 
-      %spit 
-      /control 
-      %state 
-      [slick:state face.state food.state live.state]
-   ==
-\end{lstlisting}
 
 
 \section{Conclusion}
