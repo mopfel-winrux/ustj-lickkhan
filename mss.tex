@@ -6,7 +6,7 @@
 
 %\newcommand{\authorname}{}
 \newcommand{\authorpatp}{\patp{mopfel-winrux}}
-\newcommand{\affiliation}{Native Planet}
+\newcommand{\affiliation}{NativePlanet}
 
 %  Make first page footer:
 \fancypagestyle{firststyle}{%
@@ -15,7 +15,7 @@
 \fancyfoot[L]{{\footnotesize
               %% We toggle between these:
               % Manuscript submitted for review.\\
-              {\it Urbit Systems Technical Journal} I:1 (2024):  1–3. \\
+              {\it Urbit Systems Technical Journal} I:1 (2024):  83–92. \\
               ~ \\
               Address author correspondence to \authorpatp.
               }}
@@ -43,7 +43,7 @@ The idealistic Maxwellian principles of a system built on Nock are somewhat at o
 
 % We will adjust page numbering in final editing.
 \pagenumbering{arabic}
-\setcounter{page}{1}
+\setcounter{page}{83}
 
 \tableofcontents
 
@@ -73,7 +73,7 @@ This article briefly explains Urbit's architecture, focusing on Arvo (Urbit's ke
 
 The Arvo kernel (also referred to as ``Urbit OS'') represents a paradigm shift in operating system design.  Unlike traditional operating systems that operate on preemptive multitasking and complex event networks, Arvo is a purely functional operating system, characterized by its deterministic nature and compact size.  The entire Urbit stack is about 80,000 lines of code, with Arvo itself comprising around 2,000 lines.  This small codebase is intentional, reflecting a philosophy that system administration complexity is directly proportional to code size.
 
-Arvo's unique architecture avoids what is referred to as ``event spaghetti'' by maintaining a clear causal chain for every computation \citep{Whitepaper}.  Each chain begins with a Unix I/O event and progresses through a series of steps until the computation either completes successfully or fails.  This deterministic nature allows for a high level of predictability and control, a stark contrast to most Earth-based operating systems.
+Arvo's unique architecture avoids what is referred to as ``event spaghetti'' by maintaining a clear causal chain for every computation \citep{Whitepaper}.  Each chain begins with a Unix I/O event and progresses through a series of steps until the computation completes successfully or fails.  This deterministic nature allows for a high degree of predictability, a stark contrast to most Earth-based operating systems.
 
 The kernel's design as a ``purely functional operating system''—or, more accurately if idiosyncratically, an ``operating function''—underscores its uniqueness.  Arvo operates on the principle that the current state is a pure function of its event log, a record of every action ever performed.  This determinism is a significant deviation from the normal situation that obtains on Earth, wherein operating systems allow for arbitrary programmatic alteration of global variables affecting other programs.
 
@@ -85,7 +85,7 @@ Vere, the runtime of Urbit, plays a critical role in actualizing the Martian com
 
 Vere is architecturally split into two distinct parts:  the \texttt{king} (the Earth interface, more or less) and the \texttt{serf} (the Mars substrate for Nock and Arvo).  The \texttt{king} component is responsible for handling vane I/O and managing the effects on and from Unix.  The \texttt{serf} provisions the Arvo virtual machine (VM) and related services.  This partition allows for a clear delineation of tasks within the Vere runtime, enhancing its efficiency and robustness.\footnote{The Ares project, in development, seeks to cleanly replace the \texttt{serf} process, a contingency enabled by this division of responsibility.}
 
-Communication between the \texttt{king} and \texttt{serf} is achieved via an inter-process communication ({\sc ipc}) port.  This {\sc ipc} mechanism facilitates a continuous dialogue between the two components, ensuring that the \texttt{king} can effectively manage external interactions while the \texttt{serf} maintains the integrity of the Arvo VM.
+Communication between the \texttt{king} and \texttt{serf} is achieved via an inter-process communication ({\sc ipc}) port.  This {\sc ipc} mechanism facilitates a dialogue between the two components, ensuring that the \texttt{king} can effectively manage external interactions while the \texttt{serf} maintains the integrity of the Arvo VM.
 
 Formally, Nock (and thus Urbit) is functional-as-in-language and free of side effects.  In practice, the \texttt{hint} opcode 11 in Nock is used to pass some noun to the interpreter.  The interpreter can then choose a higher order action to take based on this value, whether I/O, memory management, or other side effects.  This allows for the \texttt{king} to pass hints to the \texttt{serf} which produces effects on Earth (send a network packet, get a keyboard input, etc.).  This bridging of the Earth/Mars gap allows for vanes to interact outside of Mars.
 
@@ -100,17 +100,17 @@ Thus, Vere serves as more than just a bridge between Martian technology and Eart
 
 \section{\texttt{\%khan}:  The High-Level Thread Interface}
 
-The \texttt{\%khan} vane functions as a high-level thread interface for managing both internal and external communications within the Urbit ecosystem.  \texttt{\%khan} is designed to efficiently handle complex I/O operations, employing an I/O monad coupled with an exception monad.  This approach allows \texttt{\%khan} to adeptly manage complex I/O tasks while effectively handling potential failures.
+The \texttt{\%khan} vane functions as a high-level thread interface for managing both internal and external communications within the Urbit ecosystem.  \texttt{\%khan} is designed to efficiently handle complex I/O operations, employing an I/O monad coupled with an exception monad.  This approach allows \texttt{\%khan} to manage complex I/O tasks while robustly handling potential failures.
 
 \texttt{\%khan}'s core design revolves around the use of `threads', which are monadic functions designed to handle arguments and produce results.  Threads are optimized for I/O operations, leveraging the I/O monad for structured and efficient task handling.  The exception monad further ensures robust management of potential failures and unexpected events.  An Arvo thread is impermanent and may fail unexpectedly; it usually relies on some process external to Arvo with unknown existence or reliability.  In most of its intermediate states, it expects only a small number of events (usually one), so if the thread receives anything it does not expect, it fails.  Running threads are also not upgradable and fail across code upgrades.  Threads are fragile but well-suited for their use case in managing such tenuous I/O operations.
 
 \sloppy
-The \texttt{\%khan} vane was conceived as a way to control Urbit ships from the exterior using threads.\footnote{\texttt{\%khan} was originally called the ``control plane'' after the network routing distinction between the control plane and the data plane.}  \texttt{\%khan}'s conception evolved a fair bit from proposal to implementation.  In practice, \texttt{\%khan} is essentially an interface wrapper for \texttt{\%spider}-based threads,\footnote{\texttt{\%spider} is an agent for managing transient thread-level operations, i.e. in \texttt{\%gall}.} which produces the topsy-turvy situation in which a vane relies on a piece of userspace infrastructure to function correctly.  \texttt{\%khan} allows for pre-written threads that allow for easy hosting and maintenance to be bundled and distributed, helping both hosting companies and self-hosters to manage Urbit instances efficiently. 
+The \texttt{\%khan} vane was conceived as a way to control Urbit ships from the exterior using threads.\footnote{\texttt{\%khan} was originally called the ``control plane'' after the network routing distinction between the control plane and the data plane.}  \texttt{\%khan}'s conception evolved a fair bit from proposal to implementation.  In practice, \texttt{\%khan} is essentially an interface wrapper for \texttt{\%spider}-based threads,\footnote{\texttt{\%spider} is a \texttt{\%gall} agent to manage transient thread-level operations.} which produces the topsy-turvy situation in which a vane relies on a piece of userspace infrastructure to function correctly.  \texttt{\%khan} allows for pre-written threads that allow for easy hosting and maintenance to be bundled and distributed, helping both hosting companies and self-hosters to manage Urbit instances efficiently. 
 
 
 \section{\texttt{conn.c}} 
 
-The \texttt{conn.c} driver in Vere\footnote{\href{https://github.com/urbit/vere/blob/develop/pkg/vere/io/conn.c}{\texttt{vere/io/conn.c}}} forms part of the \texttt{king} process.  It exposes a \href{https://en.wikipedia.org/wiki/Unix_domain_socket}{Unix domain socket} at \texttt{/path/to/pier/.urb/conn.sock} for sending and receiving data from external processes.
+The \texttt{conn.c} driver in Vere\footnote{\href{https://github.com/urbit/vere/blob/develop/pkg/vere/io/conn.c}{\texttt{vere/io/conn.c}}} forms part of the \texttt{king} process.  It exposes a \href{https://en.wikipedia.org/wiki/Unix_domain_socket}{Unix domain socket} at \texttt{/path/to/pier} \texttt{/.urb/conn.sock} for sending and receiving data from external processes.
 
 \texttt{conn.c}'s functionality, particularly its ability to dispatch messages and handle various types of requests, is critical for the command of Urbit's control plane.  It serves as a way for Unix processes to receive insights about what is happening on Urbit.  \texttt{conn.c} also allows for \texttt{\%khan} and Vere generally to inject raw kernel moves (events, if successful) into the system.
 
