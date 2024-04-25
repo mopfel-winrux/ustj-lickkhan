@@ -87,7 +87,7 @@ Vere is architecturally split into two distinct parts:  the \texttt{king} (the E
 
 Communication between the \texttt{king} and \texttt{serf} is achieved via an inter-process communication ({\sc ipc}) port.  This {\sc ipc} mechanism facilitates a dialogue between the two components, ensuring that the \texttt{king} can effectively manage external interactions while the \texttt{serf} maintains the integrity of the Arvo VM.
 
-Formally, Nock (and thus Urbit) is functional-as-in-language and free of side effects.  In practice, the \texttt{hint} opcode 11 in Nock is used to pass some noun to the interpreter.  The interpreter can then choose a higher order action to take based on this value, whether I/O, memory management, or other side effects.  This allows for the \texttt{king} to pass hints to the \texttt{serf} which produces effects on Earth (send a network packet, get a keyboard input, etc.).  This bridging of the Earth/Mars gap allows for vanes to interact outside of Mars.
+Formally, Nock (and thus Urbit) is functional-as-in-language and free of side effects.  In practice, the \lstinline[style=inlinecode]{%hint} opcode 11 in Nock is used to pass some noun to the interpreter.  The interpreter can then choose a higher order action to take based on this value, whether I/O, memory management, or other side effects.  This allows for the \texttt{king} to pass hints to the \texttt{serf} which in turn produces effects on Earth (sends a network packet, retrieves keyboard input, etc.).  This bridging of the Earth/Mars gap allows for vanes to interact outside of Mars.
 
 Event processing is key to Vere's functionality.  Events from the Unix environment are passed to Vere, which then translates and injects them into Arvo.  This mechanism demonstrates a profound integration between Vere and Arvo, where Vere possesses direct knowledge of Arvo's state.  Notably, Vere can ``scry'' or query Arvo's state without altering it, retrieving information as needed.  This capability allows Vere to maintain the integrity of Arvo's deterministic model while enabling dynamic interaction with the outside world.
 
@@ -144,7 +144,7 @@ A valid \texttt{conn.c} command produces a newt-encoded \lstinline[style=inlinec
 An invalid \texttt{conn.c} command produces a newt-encoded \lstinline[style=inlinecode]{++jam}med noun with type \texttt{[0 \%bail error-code error-string]}. 
 
 
-\section[{\texttt{\%lick}:  The Low-Level {\sc ipc} Interface}]{\texttt{\%lick}:  The Low-Level IPC Interface}
+\section[{\texttt{\%lick}:  The Low-Level \textsc{\textbf{ipc}} Interface}]{\texttt{\%lick}:  The Low-Level IPC Interface}
 
 Although also dealing with interprocess communication, the \texttt{\%lick} vane \citep{UIP-0101} was designed for a very different use-case than \texttt{\%khan}:  to allow external processes, in particular hardware drivers, to intercommunicate with Urbit.  \texttt{\%lick} focuses on creating a generic noun interface over Unix domain sockets.
 
@@ -195,12 +195,13 @@ Arvo will send three types of \lstinline[style=inlinecode]{%soak}s to an open \t
 \noindent
 \texttt{\%lick} also will send a \lstinline[style=inlinecode]{%disconnect} \lstinline[style=inlinecode]{%soak} to every agent when Vere is started.
 
-Gall needs to wrap \lstinline[style=inlinecode]{%soak} and \lstinline[style=inlinecode]{%spit} to route properly (see e.g. \lstinline[style=inlinecode]{++ap-generic-take}).  This permits multiple agents to share sockets with the same name while still organizing an agent's sockets by a unique path.
+Gall needs to wrap \lstinline[style=inlinecode]{%soak} and \lstinline[style=inlinecode]{%spit} to route properly (see e.\,g.\ \lstinline[style=inlinecode]{++ap-generic-take}).  This permits multiple agents to share sockets with the same name while still organizing an agent's sockets by a unique path.
 
 
 \section{Conclusion}
 
-This exploration into Urbit's {\sc ipc} interfaces, in particular \texttt{\%khan}, \texttt{conn.c}, and \texttt{\%lick}, has sought to illuminate the architectural innovations that distinguish Urbit from traditional computing paradigms.  These mechanisms permit Vere to balance Arvo's demand for pristine determinism against the host Unix OS's many competing software interfaces and tools.  While Urbit itself obviously relies deeply on these, following this pattern in other systems could lead to a redefinition of how digital ecosystems interact. \tombstone{}
+\sloppy
+This exposition of Urbit's {\sc ipc} interfaces, in particular \texttt{\%khan}, \texttt{conn.c}, and \texttt{\%lick}, has sought to cast light upon architectural innovations that distinguish Urbit from traditional computing paradigms.  These mechanisms permit Vere to balance Arvo's demand for pristine determinism against the host Unix OS's many competing software interfaces and tools.  While Urbit itself obviously relies deeply on these, following this pattern in other systems could lead to a redefinition of how digital ecosystems interact. \tombstone{}
 
 \selectlanguage{USenglish}
 \printbibliography
